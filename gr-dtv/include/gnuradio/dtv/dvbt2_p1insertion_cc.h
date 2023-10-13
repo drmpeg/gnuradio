@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015,2017 Free Software Foundation, Inc.
+ * Copyright 2015,2017,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -32,19 +32,27 @@ public:
     /*!
      * \brief Create a P1 symbol inserter.
      *
-     * \param carriermode number of carriers (normal or extended).
+     * \param fefmode FEF insertion mode (on or off).
      * \param fftsize OFDM IFFT size.
      * \param guardinterval OFDM ISI guard interval.
      * \param numdatasyms number of OFDM symbols in a T2 frame.
      * \param preamble P1 symbol preamble format.
+     * \param feffftsize OFDM IFFT size of FEF.
+     * \param fefguardinterval OFDM ISI guard interval of FEF.
+     * \param fefnumdatasyms number of OFDM symbols in a FEF.
+     * \param fefpreamble P1 symbol preamble format of FEF.
      * \param showlevels print peak IQ levels.
      * \param vclip set peak IQ level threshold.
      */
-    static sptr make(dvbt2_extended_carrier_t carriermode,
+    static sptr make(dvbt2_fef_t fefmode,
                      dvbt2_fftsize_t fftsize,
                      dvb_guardinterval_t guardinterval,
                      int numdatasyms,
                      dvbt2_preamble_t preamble,
+                     dvbt2_fftsize_t feffftsize,
+                     dvb_guardinterval_t fefguardinterval,
+                     int fefnumdatasyms,
+                     dvbt2_preamble_t fefpreamble,
                      dvbt2_showlevels_t showlevels,
                      float vclip);
 };

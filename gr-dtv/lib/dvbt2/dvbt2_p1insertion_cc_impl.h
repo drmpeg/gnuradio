@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015 Free Software Foundation, Inc.
+ * Copyright 2015,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -20,7 +20,7 @@ namespace dtv {
 class dvbt2_p1insertion_cc_impl : public dvbt2_p1insertion_cc
 {
 private:
-    int frame_items;
+    int frame_items[2];
     int insertion_items;
     int p1_randomize[384];
     int modulation_sequence[384];
@@ -29,8 +29,11 @@ private:
     gr_complex p1_freqshft[1024];
     gr_complex p1_time[1024];
     gr_complex p1_timeshft[1024];
+    gr_complex p1_fef_time[1024];
+    gr_complex p1_fef_timeshft[1024];
     void init_p1_randomizer(void);
 
+    int fef_mode;
     int show_levels;
     float real_positive;
     float real_negative;
@@ -52,11 +55,15 @@ private:
     const static unsigned char s2_modulation_patterns[16][32];
 
 public:
-    dvbt2_p1insertion_cc_impl(dvbt2_extended_carrier_t carriermode,
+    dvbt2_p1insertion_cc_impl(dvbt2_fef_t fefmode,
                               dvbt2_fftsize_t fftsize,
                               dvb_guardinterval_t guardinterval,
                               int numdatasyms,
                               dvbt2_preamble_t preamble,
+                              dvbt2_fftsize_t feffftsize,
+                              dvb_guardinterval_t fefguardinterval,
+                              int fefnumdatasyms,
+                              dvbt2_preamble_t fefpreamble,
                               dvbt2_showlevels_t showlevels,
                               float vclip);
     ~dvbt2_p1insertion_cc_impl() override;

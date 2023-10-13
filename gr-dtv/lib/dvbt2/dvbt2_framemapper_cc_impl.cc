@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015-2017,2019 Free Software Foundation, Inc.
+ * Copyright 2015-2017,2019,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -37,7 +37,11 @@ dvbt2_framemapper_cc::make(dvb_framesize_t framesize,
                            dvbt2_inputmode_t inputmode,
                            dvbt2_reservedbiasbits_t reservedbiasbits,
                            dvbt2_l1scrambled_t l1scrambled,
-                           dvbt2_inband_t inband)
+                           dvbt2_inband_t inband,
+                           dvbt2_fef_t fefmode,
+                           int feftype,
+                           int feflength,
+                           int fefinterval)
 {
     return gnuradio::make_block_sptr<dvbt2_framemapper_cc_impl>(framesize,
                                                                 rate,
@@ -58,7 +62,11 @@ dvbt2_framemapper_cc::make(dvb_framesize_t framesize,
                                                                 inputmode,
                                                                 reservedbiasbits,
                                                                 l1scrambled,
-                                                                inband);
+                                                                inband,
+                                                                fefmode,
+                                                                feftype,
+                                                                feflength,
+                                                                fefinterval);
 }
 
 /*
@@ -84,7 +92,11 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     dvbt2_inputmode_t inputmode,
     dvbt2_reservedbiasbits_t reservedbiasbits,
     dvbt2_l1scrambled_t l1scrambled,
-    dvbt2_inband_t inband)
+    dvbt2_inband_t inband,
+    dvbt2_fef_t fefmode,
+    int feftype,
+    int feflength,
+    int fefinterval)
     : gr::block("dvbt2_framemapper_cc",
                 gr::io_signature::make(1, 1, sizeof(gr_complex)),
                 gr::io_signature::make(1, 1, sizeof(gr_complex)))
@@ -135,6 +147,7 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     }
     l1preinit->type = STREAMTYPE_TS;
     l1preinit->bwt_ext = carriermode;
+    fef_mode = fefmode;
     fft_size = fftsize;
     l1preinit->s1 = preamble;
     l1preinit->s2 = fft_size & 0x7;
@@ -144,7 +157,13 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     l1preinit->l1_mod = l1constellation;
     l1preinit->l1_cod = 0;
     l1preinit->l1_fec_type = 0;
-    l1preinit->l1_post_info_size = KSIG_POST - 32;
+    if (fefmode == FEF_ON) {
+        ksig_post = KSIG_POST_FEF;
+    }
+    else {
+        ksig_post = KSIG_POST;
+    }
+    l1preinit->l1_post_info_size = ksig_post - 32;
     l1preinit->pilot_pattern = pilotpattern;
     l1preinit->tx_id_availability = 0;
     l1preinit->cell_id = 0;
@@ -175,13 +194,21 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     l1postinit->aux_config_rfu = 0;
     l1postinit->rf_idx = 0;
     l1postinit->frequency = 729833333;
+    l1postinit->fef_type = feftype;
+    l1postinit->fef_length = feflength;
+    l1postinit->fef_interval = fefinterval;
     l1postinit->plp_id = 0;
     l1postinit->plp_type = 1;
     l1postinit->plp_payload_type = 3;
     l1postinit->ff_flag = 0;
     l1postinit->first_rf_idx = 0;
     l1postinit->first_frame_idx = 0;
-    l1postinit->plp_group_id = 1;
+    if (fefmode == FEF_ON) {
+        l1postinit->plp_group_id = 0;
+    }
+    else {
+        l1postinit->plp_group_id = 1;
+    }
     switch (rate) {
     case C1_3:
         l1postinit->plp_cod = 6;
@@ -234,8 +261,14 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     } else {
         l1postinit->plp_mode = inputmode + 1;
     }
-    l1postinit->static_flag = 0;
-    l1postinit->static_padding_flag = 0;
+    if (version == VERSION_111) {
+        l1postinit->static_flag = 0;
+        l1postinit->static_padding_flag = 0;
+    }
+    else {
+        l1postinit->static_flag = 1;
+        l1postinit->static_padding_flag = 1;
+    }
     l1postinit->fef_length_msb = 0;
     if (reservedbiasbits == RESERVED_ON && version == VERSION_131) {
         l1postinit->reserved_2 = 0x3fffffff;
@@ -857,8 +890,8 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
             C_FC = 0;
         }
     }
-    N_punc_temp = (6 * (KBCH_1_2 - KSIG_POST)) / 5;
-    N_post_temp = KSIG_POST + NBCH_PARITY + 9000 - N_punc_temp;
+    N_punc_temp = (6 * (KBCH_1_2 - ksig_post)) / 5;
+    N_post_temp = ksig_post + NBCH_PARITY + 9000 - N_punc_temp;
     if (N_P2 == 1) {
         N_post = ceil((float)N_post_temp / (2 * (float)eta_mod)) * 2 * eta_mod;
     } else {
@@ -1117,7 +1150,7 @@ void dvbt2_framemapper_cc_impl::add_l1pre(gr_complex* out)
     for (int n = 2; n >= 0; n--) {
         l1pre[offset_bits++] = temp & (1 << n) ? 1 : 0;
     }
-    l1pre[offset_bits++] = 0;
+    l1pre[offset_bits++] = (fef_mode == FEF_ON) ? 1 : 0;
     l1pre[offset_bits++] = l1preinit->l1_repetition_flag;
     temp = l1preinit->guard_interval;
     for (int n = 2; n >= 0; n--) {
@@ -1300,6 +1333,20 @@ void dvbt2_framemapper_cc_impl::add_l1post(gr_complex* out, int t2_frame_num)
     temp = l1postinit->frequency;
     for (int n = 31; n >= 0; n--) {
         l1post[offset_bits++] = temp & (1 << n) ? 1 : 0;
+    }
+    if (fef_mode == FEF_ON) {
+        temp = l1postinit->fef_type;
+        for (int n = 3; n >= 0; n--) {
+            l1post[offset_bits++] = temp & (1 << n) ? 1 : 0;
+        }
+        temp = l1postinit->fef_length;
+        for (int n = 21; n >= 0; n--) {
+            l1post[offset_bits++] = temp & (1 << n) ? 1 : 0;
+        }
+        temp = l1postinit->fef_interval;
+        for (int n = 7; n >= 0; n--) {
+            l1post[offset_bits++] = temp & (1 << n) ? 1 : 0;
+        }
     }
     temp = l1postinit->plp_id;
     for (int n = 7; n >= 0; n--) {

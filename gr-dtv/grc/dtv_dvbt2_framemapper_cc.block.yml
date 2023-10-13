@@ -180,6 +180,30 @@ parameters:
     option_attributes:
         val: [dtv.INBAND_OFF, dtv.INBAND_ON]
     hide: ${ version.hide_131 }
+-   id: fefmode
+    label: FEF Mode
+    dtype: enum
+    options: [FEF_OFF, FEF_ON]
+    option_labels: [Disabled, Enabled]
+    option_attributes:
+        hide_fef: [all, none]
+        val: [dtv.FEF_OFF, dtv.FEF_ON]
+    default: FEF_OFF
+-   id: feftype
+    label: FEF Type
+    dtype: int
+    default: '0'
+    hide: ${ fefmode.hide_fef }
+-   id: feflength
+    label: FEF Length
+    dtype: int
+    default: '0'
+    hide: ${ fefmode.hide_fef }
+-   id: fefinterval
+    label: FEF Interval
+    dtype: int
+    default: '1'
+    hide: ${ fefmode.hide_fef }
 
 inputs:
 -   domain: stream
@@ -228,7 +252,11 @@ templates:
             ${inputmode.val},
             ${reservedbiasbits.val},
             ${l1scrambled.val},
-            ${inband.val})
+            ${inband.val},
+            ${fefmode.val},
+            ${feftype},
+            ${feflength},
+            ${fefinterval})
 
 cpp_templates:
     includes: ['#include <gnuradio/dtv/dvbt2_framemapper_cc.h>']
@@ -270,7 +298,11 @@ cpp_templates:
             ${inputmode.val},
             ${reservedbiasbits.val},
             ${l1scrambled.val},
-            ${inband.val});
+            ${inband.val},
+            ${fefmode.val},
+            ${feftype},
+            ${feflength},
+            ${fefinterval});
     link: ['gnuradio::gnuradio-dtv']
     translations:
         dtv\.: 'dtv::'

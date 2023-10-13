@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015,2017 Free Software Foundation, Inc.
+ * Copyright 2015,2017,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -52,6 +52,10 @@ public:
      * \param reservedbiasbits set all L1 bias bits to 1 (on or off).
      * \param l1scrambled scramble L1 post signalling (on or off).
      * \param inband In-band type B signalling (on or off).
+     * \param fefmode FEF insertion mode (on or off).
+     * \param feftype FEF Type (undefined, defaults to 0).
+     * \param feflength FEF length in elementary periods T.
+     * \param fefinterval Number of T2-frames between two FEF parts.
      */
     static sptr make(dvb_framesize_t framesize,
                      dvb_code_rate_t rate,
@@ -72,7 +76,11 @@ public:
                      dvbt2_inputmode_t inputmode,
                      dvbt2_reservedbiasbits_t reservedbiasbits,
                      dvbt2_l1scrambled_t l1scrambled,
-                     dvbt2_inband_t inband);
+                     dvbt2_inband_t inband,
+                     dvbt2_fef_t fefmode,
+                     int feftype,
+                     int feflength,
+                     int fefinterval);
 };
 
 } // namespace dtv

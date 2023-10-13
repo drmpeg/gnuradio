@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015 Free Software Foundation, Inc.
+ * Copyright 2015,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -20,6 +20,7 @@
 
 #define KSIG_PRE 200
 #define KSIG_POST 350
+#define KSIG_POST_FEF 384
 #define NBCH_PARITY 168
 
 typedef struct {
@@ -60,6 +61,9 @@ typedef struct {
     int aux_config_rfu;
     int rf_idx;
     int frequency;
+    int fef_type;
+    int fef_length;
+    int fef_interval;
     int plp_id;
     int plp_type;
     int plp_payload_type;
@@ -135,6 +139,8 @@ private:
     int C_DATA;
     int N_post;
     int N_punc;
+    int fef_mode;
+    int ksig_post;
     L1Signalling L1_Signalling[1];
     void add_l1pre(gr_complex*);
     void add_l1post(gr_complex*, int);
@@ -198,7 +204,11 @@ public:
                               dvbt2_inputmode_t inputmode,
                               dvbt2_reservedbiasbits_t reservedbiasbits,
                               dvbt2_l1scrambled_t l1scrambled,
-                              dvbt2_inband_t inband);
+                              dvbt2_inband_t inband,
+                              dvbt2_fef_t fefmode,
+                              int feftype,
+                              int feflength,
+                              int fefinterval);
     ~dvbt2_framemapper_cc_impl() override;
 
     void forecast(int noutput_items, gr_vector_int& ninput_items_required) override;

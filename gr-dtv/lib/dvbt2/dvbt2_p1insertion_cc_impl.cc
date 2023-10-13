@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015,2019 Free Software Foundation, Inc.
+ * Copyright 2015,2019,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -19,31 +19,40 @@ namespace gr {
 namespace dtv {
 
 dvbt2_p1insertion_cc::sptr
-dvbt2_p1insertion_cc::make(dvbt2_extended_carrier_t carriermode,
+dvbt2_p1insertion_cc::make(dvbt2_fef_t fefmode,
                            dvbt2_fftsize_t fftsize,
                            dvb_guardinterval_t guardinterval,
                            int numdatasyms,
                            dvbt2_preamble_t preamble,
+                           dvbt2_fftsize_t feffftsize,
+                           dvb_guardinterval_t fefguardinterval,
+                           int fefnumdatasyms,
+                           dvbt2_preamble_t fefpreamble,
                            dvbt2_showlevels_t showlevels,
                            float vclip)
 {
     return gnuradio::make_block_sptr<dvbt2_p1insertion_cc_impl>(
-        carriermode, fftsize, guardinterval, numdatasyms, preamble, showlevels, vclip);
+        fefmode, fftsize, guardinterval, numdatasyms, preamble, feffftsize, fefguardinterval, fefnumdatasyms, fefpreamble, showlevels, vclip);
 }
 
 /*
  * The private constructor
  */
-dvbt2_p1insertion_cc_impl::dvbt2_p1insertion_cc_impl(dvbt2_extended_carrier_t carriermode,
+dvbt2_p1insertion_cc_impl::dvbt2_p1insertion_cc_impl(dvbt2_fef_t fefmode,
                                                      dvbt2_fftsize_t fftsize,
                                                      dvb_guardinterval_t guardinterval,
                                                      int numdatasyms,
                                                      dvbt2_preamble_t preamble,
+                                                     dvbt2_fftsize_t feffftsize,
+                                                     dvb_guardinterval_t fefguardinterval,
+                                                     int fefnumdatasyms,
+                                                     dvbt2_preamble_t fefpreamble,
                                                      dvbt2_showlevels_t showlevels,
                                                      float vclip)
     : gr::block("dvbt2_p1insertion_cc",
-                gr::io_signature::make(1, 1, sizeof(gr_complex)),
+                gr::io_signature::make(1, 2, sizeof(gr_complex)),
                 gr::io_signature::make(1, 1, sizeof(gr_complex))),
+      fef_mode(fefmode),
       show_levels(showlevels),
       real_positive(0.0),
       real_negative(0.0),
@@ -59,79 +68,137 @@ dvbt2_p1insertion_cc_impl::dvbt2_p1insertion_cc_impl(dvbt2_extended_carrier_t ca
       imag_negative_threshold_count(0),
       p1_fft(1024, 1)
 {
-    int s1, s2, index = 0;
+    int s1[2], s2[2], index = 0;
     int p1_fft_size = 1024;
-    int symbol_size, N_P2, guard_interval;
+    int symbol_size[2], N_P2[2], guard_interval[2];
     const gr_complex* in = (const gr_complex*)p1_freq;
     gr_complex* out = (gr_complex*)p1_time;
-    s1 = preamble;
+    s1[0] = preamble;
+    s1[1] = fefpreamble;
     switch (fftsize) {
     case FFTSIZE_1K:
-        symbol_size = 1024;
-        N_P2 = 16;
+        symbol_size[0] = 1024;
+        N_P2[0] = 16;
         break;
     case FFTSIZE_2K:
-        symbol_size = 2048;
-        N_P2 = 8;
+        symbol_size[0] = 2048;
+        N_P2[0] = 8;
         break;
     case FFTSIZE_4K:
-        symbol_size = 4096;
-        N_P2 = 4;
+        symbol_size[0] = 4096;
+        N_P2[0] = 4;
         break;
     case FFTSIZE_8K:
     case FFTSIZE_8K_T2GI:
-        symbol_size = 8192;
-        N_P2 = 2;
+        symbol_size[0] = 8192;
+        N_P2[0] = 2;
         break;
     case FFTSIZE_16K:
     case FFTSIZE_16K_T2GI:
-        symbol_size = 16384;
-        N_P2 = 1;
+        symbol_size[0] = 16384;
+        N_P2[0] = 1;
         break;
     case FFTSIZE_32K:
     case FFTSIZE_32K_T2GI:
-        symbol_size = 32768;
-        N_P2 = 1;
+        symbol_size[0] = 32768;
+        N_P2[0] = 1;
         break;
     }
     switch (guardinterval) {
     case GI_1_32:
-        guard_interval = symbol_size / 32;
+        guard_interval[0] = symbol_size[0] / 32;
         break;
     case GI_1_16:
-        guard_interval = symbol_size / 16;
+        guard_interval[0] = symbol_size[0] / 16;
         break;
     case GI_1_8:
-        guard_interval = symbol_size / 8;
+        guard_interval[0] = symbol_size[0] / 8;
         break;
     case GI_1_4:
-        guard_interval = symbol_size / 4;
+        guard_interval[0] = symbol_size[0] / 4;
         break;
     case GI_1_128:
-        guard_interval = symbol_size / 128;
+        guard_interval[0] = symbol_size[0] / 128;
         break;
     case GI_19_128:
-        guard_interval = (symbol_size * 19) / 128;
+        guard_interval[0] = (symbol_size[0] * 19) / 128;
         break;
     case GI_19_256:
-        guard_interval = (symbol_size * 19) / 256;
+        guard_interval[0] = (symbol_size[0] * 19) / 256;
+        break;
+    }
+    switch (feffftsize) {
+    case FFTSIZE_1K:
+        symbol_size[1] = 1024;
+        N_P2[1] = 16;
+        break;
+    case FFTSIZE_2K:
+        symbol_size[1] = 2048;
+        N_P2[1] = 8;
+        break;
+    case FFTSIZE_4K:
+        symbol_size[1] = 4096;
+        N_P2[1] = 4;
+        break;
+    case FFTSIZE_8K:
+    case FFTSIZE_8K_T2GI:
+        symbol_size[1] = 8192;
+        N_P2[1] = 2;
+        break;
+    case FFTSIZE_16K:
+    case FFTSIZE_16K_T2GI:
+        symbol_size[1] = 16384;
+        N_P2[1] = 1;
+        break;
+    case FFTSIZE_32K:
+    case FFTSIZE_32K_T2GI:
+        symbol_size[1] = 32768;
+        N_P2[1] = 1;
+        break;
+    }
+    switch (fefguardinterval) {
+    case GI_1_32:
+        guard_interval[1] = symbol_size[1] / 32;
+        break;
+    case GI_1_16:
+        guard_interval[1] = symbol_size[1] / 16;
+        break;
+    case GI_1_8:
+        guard_interval[1] = symbol_size[1] / 8;
+        break;
+    case GI_1_4:
+        guard_interval[1] = symbol_size[1] / 4;
+        break;
+    case GI_1_128:
+        guard_interval[1] = symbol_size[1] / 128;
+        break;
+    case GI_19_128:
+        guard_interval[1] = (symbol_size[1] * 19) / 128;
+        break;
+    case GI_19_256:
+        guard_interval[1] = (symbol_size[1] * 19) / 256;
         break;
     }
     init_p1_randomizer();
-    s2 = (fftsize & 0x7) << 1;
+    if (preamble == PREAMBLE_NON_T2) {
+        s2[0] = 0 + (fefmode ? 1 : 0);
+    }
+    else {
+        s2[0] = ((fftsize & 0x7) << 1) + (fefmode ? 1 : 0);
+    }
     for (int i = 0; i < 8; i++) {
         for (int j = 7; j >= 0; j--) {
-            modulation_sequence[index++] = (s1_modulation_patterns[s1][i] >> j) & 0x1;
+            modulation_sequence[index++] = (s1_modulation_patterns[s1[0]][i] >> j) & 0x1;
         }
     }
     for (int i = 0; i < 32; i++) {
         for (int j = 7; j >= 0; j--) {
-            modulation_sequence[index++] = (s2_modulation_patterns[s2][i] >> j) & 0x1;
+            modulation_sequence[index++] = (s2_modulation_patterns[s2[0]][i] >> j) & 0x1;
         }
     }
     for (int i = 0; i < 8; i++) {
         for (int j = 7; j >= 0; j--) {
-            modulation_sequence[index++] = (s1_modulation_patterns[s1][i] >> j) & 0x1;
+            modulation_sequence[index++] = (s1_modulation_patterns[s1[0]][i] >> j) & 0x1;
         }
     }
     dbpsk_modulation_sequence[0] = 1;
@@ -174,10 +241,84 @@ dvbt2_p1insertion_cc_impl::dvbt2_p1insertion_cc_impl(dvbt2_extended_carrier_t ca
     for (int i = 0; i < 1024; i++) {
         p1_timeshft[i] /= std::sqrt(384.0);
     }
-    frame_items =
-        ((numdatasyms + N_P2) * symbol_size) + ((numdatasyms + N_P2) * guard_interval);
-    insertion_items = frame_items + 2048;
-    set_output_multiple(frame_items + 2048);
+
+    index = 0;
+    in = (const gr_complex*)p1_freq;
+    out = (gr_complex*)p1_fef_time;
+    if (fefpreamble == PREAMBLE_NON_T2) {
+        s2[1] = 0 + (fefmode ? 1 : 0);
+    }
+    else {
+        s2[1] = ((feffftsize & 0x7) << 1) + (fefmode ? 1 : 0);
+    }
+    for (int i = 0; i < 8; i++) {
+        for (int j = 7; j >= 0; j--) {
+            modulation_sequence[index++] = (s1_modulation_patterns[s1[1]][i] >> j) & 0x1;
+        }
+    }
+    for (int i = 0; i < 32; i++) {
+        for (int j = 7; j >= 0; j--) {
+            modulation_sequence[index++] = (s2_modulation_patterns[s2[1]][i] >> j) & 0x1;
+        }
+    }
+    for (int i = 0; i < 8; i++) {
+        for (int j = 7; j >= 0; j--) {
+            modulation_sequence[index++] = (s1_modulation_patterns[s1[1]][i] >> j) & 0x1;
+        }
+    }
+    dbpsk_modulation_sequence[0] = 1;
+    for (int i = 1; i < 385; i++) {
+        dbpsk_modulation_sequence[i] = 0;
+    }
+    for (int i = 1; i < 385; i++) {
+        if (modulation_sequence[i - 1] == 1) {
+            dbpsk_modulation_sequence[i] = -dbpsk_modulation_sequence[i - 1];
+        } else {
+            dbpsk_modulation_sequence[i] = dbpsk_modulation_sequence[i - 1];
+        }
+    }
+    for (int i = 0; i < 384; i++) {
+        dbpsk_modulation_sequence[i] = dbpsk_modulation_sequence[i + 1] * p1_randomize[i];
+    }
+    std::fill_n(&p1_freq[0], 1024, 0);
+    for (int i = 0; i < 384; i++) {
+        p1_freq[p1_active_carriers[i] + 86] = float(dbpsk_modulation_sequence[i]);
+    }
+    dst = p1_fft.get_inbuf();
+    memcpy(&dst[p1_fft_size / 2], &in[0], sizeof(gr_complex) * p1_fft_size / 2);
+    memcpy(&dst[0], &in[p1_fft_size / 2], sizeof(gr_complex) * p1_fft_size / 2);
+    p1_fft.execute();
+    memcpy(out, p1_fft.get_outbuf(), sizeof(gr_complex) * p1_fft_size);
+    for (int i = 0; i < 1024; i++) {
+        p1_fef_time[i] /= std::sqrt(384.0);
+    }
+    for (int i = 0; i < 1023; i++) {
+        p1_freqshft[i + 1] = p1_freq[i];
+    }
+    p1_freqshft[0] = p1_freq[1023];
+    in = (const gr_complex*)p1_freqshft;
+    out = (gr_complex*)p1_fef_timeshft;
+    dst = p1_fft.get_inbuf();
+    memcpy(&dst[p1_fft_size / 2], &in[0], sizeof(gr_complex) * p1_fft_size / 2);
+    memcpy(&dst[0], &in[p1_fft_size / 2], sizeof(gr_complex) * p1_fft_size / 2);
+    p1_fft.execute();
+    memcpy(out, p1_fft.get_outbuf(), sizeof(gr_complex) * p1_fft_size);
+    for (int i = 0; i < 1024; i++) {
+        p1_fef_timeshft[i] /= std::sqrt(384.0);
+    }
+
+    frame_items[0] =
+        ((numdatasyms + N_P2[0]) * symbol_size[0]) + ((numdatasyms + N_P2[0]) * guard_interval[0]);
+    frame_items[1] =
+        ((fefnumdatasyms + N_P2[1]) * symbol_size[1]) + ((fefnumdatasyms + N_P2[1]) * guard_interval[1]);
+    if (fefmode == FEF_OFF) {
+        insertion_items = frame_items[0] + 2048;
+        set_output_multiple(insertion_items);
+    }
+    else {
+        insertion_items = frame_items[0] + 2048 + frame_items[1] + 2048;
+        set_output_multiple(insertion_items);
+    }
 }
 
 void dvbt2_p1insertion_cc_impl::init_p1_randomizer(void)
@@ -204,7 +345,13 @@ dvbt2_p1insertion_cc_impl::~dvbt2_p1insertion_cc_impl() {}
 void dvbt2_p1insertion_cc_impl::forecast(int noutput_items,
                                          gr_vector_int& ninput_items_required)
 {
-    ninput_items_required[0] = frame_items * (noutput_items / insertion_items);
+    if (fef_mode == FEF_OFF) {
+        ninput_items_required[0] = frame_items[0] * (noutput_items / insertion_items);
+    }
+    else {
+        ninput_items_required[0] = frame_items[0] * (noutput_items / insertion_items);
+        ninput_items_required[1] = frame_items[1] * (noutput_items / insertion_items);
+    }
 }
 
 int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
@@ -213,8 +360,13 @@ int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
                                             gr_vector_void_star& output_items)
 {
     const gr_complex* in = (const gr_complex*)input_items[0];
+    const gr_complex* in_fef = nullptr;
     gr_complex* out = (gr_complex*)output_items[0];
     gr_complex* level;
+
+    if (fef_mode == FEF_ON) {
+        in_fef = (const gr_complex*)input_items[1];
+    }
 
     for (int i = 0; i < noutput_items; i += insertion_items) {
         level = out;
@@ -227,9 +379,23 @@ int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
         for (int j = 542; j < 1024; j++) {
             *out++ = p1_timeshft[j];
         }
-        memcpy(out, in, sizeof(gr_complex) * frame_items);
+        memcpy(out, in, sizeof(gr_complex) * frame_items[0]);
+        out += frame_items[0];
+        if (fef_mode == FEF_ON) {
+            for (int j = 0; j < 542; j++) {
+                *out++ = p1_fef_timeshft[j];
+            }
+            for (int j = 0; j < 1024; j++) {
+                *out++ = p1_fef_time[j];
+            }
+            for (int j = 542; j < 1024; j++) {
+                *out++ = p1_fef_timeshft[j];
+            }
+            memcpy(out, in_fef, sizeof(gr_complex) * frame_items[1]);
+            out += frame_items[1];
+        }
         if (show_levels == TRUE) {
-            for (int j = 0; j < frame_items + 2048; j++) {
+            for (int j = 0; j < insertion_items; j++) {
                 if (level[j].real() > real_positive) {
                     real_positive = level[j].real();
                 }
@@ -266,13 +432,18 @@ int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
                    imag_positive_threshold_count,
                    imag_negative_threshold_count);
         }
-        out += frame_items;
-        in += frame_items;
+        in += frame_items[0];
+        if (fef_mode == FEF_ON) {
+            in_fef += frame_items[1];
+        }
     }
 
     // Tell runtime system how many input items we consumed on
     // each input stream.
-    consume_each(frame_items);
+    consume (0, frame_items[0]);
+    if (fef_mode == FEF_ON) {
+        consume (1, frame_items[1]);
+    }
 
     // Tell runtime system how many output items we produced.
     return noutput_items;

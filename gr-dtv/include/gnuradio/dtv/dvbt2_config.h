@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2015 Free Software Foundation, Inc.
+ * Copyright 2015,2023 Free Software Foundation, Inc.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -122,6 +122,11 @@ enum dvbt2_bandwidth_t {
     BANDWIDTH_10_0_MHZ,
 };
 
+enum dvbt2_fef_t {
+    FEF_OFF = 0,
+    FEF_ON,
+};
+
 } // namespace dtv
 } // namespace gr
 
@@ -142,5 +147,6 @@ typedef gr::dtv::dvbt2_showlevels_t dvbt2_showlevels_t;
 typedef gr::dtv::dvbt2_inband_t dvbt2_inband_t;
 typedef gr::dtv::dvbt2_equalization_t dvbt2_equalization_t;
 typedef gr::dtv::dvbt2_bandwidth_t dvbt2_bandwidth_t;
+typedef gr::dtv::dvbt2_fef_t dvbt2_fef_t;
 
 #endif /* INCLUDED_DTV_DVBT2_CONFIG_H */
