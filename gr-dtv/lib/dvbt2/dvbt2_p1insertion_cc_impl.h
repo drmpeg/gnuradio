@@ -34,6 +34,8 @@ private:
     void init_p1_randomizer(void);
 
     int fef_mode;
+    int fef_interval;
+    int fef_count;
     int show_levels;
     float real_positive;
     float real_negative;
@@ -56,6 +58,7 @@ private:
 
 public:
     dvbt2_p1insertion_cc_impl(dvbt2_fef_t fefmode,
+                              int fefinterval,
                               dvbt2_fftsize_t fftsize,
                               dvb_guardinterval_t guardinterval,
                               int numdatasyms,

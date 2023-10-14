@@ -13,6 +13,11 @@ parameters:
         ports: [1, 2]
         val: [dtv.FEF_OFF, dtv.FEF_ON]
     default: FEF_OFF
+-   id: fefinterval
+    label: FEF Interval
+    dtype: int
+    default: '1'
+    hide: ${ fefmode.hide_fef }
 -   id: fftsize1
     label: FFT Size
     dtype: enum
@@ -164,6 +169,7 @@ templates:
     make: |-
         dtv.dvbt2_p1insertion_cc(
             ${fefmode.val},
+            ${fefinterval},
             % if str(version) == 'VERSION_111':
             ${fftsize1.val},
             % else:
@@ -206,6 +212,7 @@ cpp_templates:
     make: |-
         this->${id} = dtv::dvbt2_p1insertion_cc::make(
             ${fefmode.val},
+            ${fefinterval},
             % if str(version) == 'VERSION_111':
             ${fftsize1.val},
             % else:

@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(dvbt2_p1insertion_cc.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(9826dbd813e2125b6c0fc2c8f62ebb4a)                     */
+/* BINDTOOL_HEADER_FILE_HASH(f662f12fabf6075c57d1befe8a296a33)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -41,6 +41,7 @@ void bind_dvbt2_p1insertion_cc(py::module& m)
 
         .def(py::init(&dvbt2_p1insertion_cc::make),
              py::arg("fefmode"),
+             py::arg("fefinterval"),
              py::arg("fftsize"),
              py::arg("guardinterval"),
              py::arg("numdatasyms"),

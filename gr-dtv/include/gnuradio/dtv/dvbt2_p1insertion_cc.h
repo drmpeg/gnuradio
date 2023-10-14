@@ -33,6 +33,7 @@ public:
      * \brief Create a P1 symbol inserter.
      *
      * \param fefmode FEF insertion mode (on or off).
+     * \param fefinterval number of T2-frames between two FEFs.
      * \param fftsize OFDM IFFT size.
      * \param guardinterval OFDM ISI guard interval.
      * \param numdatasyms number of OFDM symbols in a T2 frame.
@@ -45,6 +46,7 @@ public:
      * \param vclip set peak IQ level threshold.
      */
     static sptr make(dvbt2_fef_t fefmode,
+                     int fefinterval,
                      dvbt2_fftsize_t fftsize,
                      dvb_guardinterval_t guardinterval,
                      int numdatasyms,

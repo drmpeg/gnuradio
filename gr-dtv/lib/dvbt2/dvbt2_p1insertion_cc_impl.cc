@@ -20,6 +20,7 @@ namespace dtv {
 
 dvbt2_p1insertion_cc::sptr
 dvbt2_p1insertion_cc::make(dvbt2_fef_t fefmode,
+                           int fefinterval,
                            dvbt2_fftsize_t fftsize,
                            dvb_guardinterval_t guardinterval,
                            int numdatasyms,
@@ -32,13 +33,14 @@ dvbt2_p1insertion_cc::make(dvbt2_fef_t fefmode,
                            float vclip)
 {
     return gnuradio::make_block_sptr<dvbt2_p1insertion_cc_impl>(
-        fefmode, fftsize, guardinterval, numdatasyms, preamble, feffftsize, fefguardinterval, fefnumdatasyms, fefpreamble, showlevels, vclip);
+        fefmode, fefinterval, fftsize, guardinterval, numdatasyms, preamble, feffftsize, fefguardinterval, fefnumdatasyms, fefpreamble, showlevels, vclip);
 }
 
 /*
  * The private constructor
  */
 dvbt2_p1insertion_cc_impl::dvbt2_p1insertion_cc_impl(dvbt2_fef_t fefmode,
+                                                     int fefinterval,
                                                      dvbt2_fftsize_t fftsize,
                                                      dvb_guardinterval_t guardinterval,
                                                      int numdatasyms,
@@ -53,6 +55,8 @@ dvbt2_p1insertion_cc_impl::dvbt2_p1insertion_cc_impl(dvbt2_fef_t fefmode,
                 gr::io_signature::make(1, 2, sizeof(gr_complex)),
                 gr::io_signature::make(1, 1, sizeof(gr_complex))),
       fef_mode(fefmode),
+      fef_interval(fefinterval),
+      fef_count(fefinterval),
       show_levels(showlevels),
       real_positive(0.0),
       real_negative(0.0),
@@ -363,6 +367,8 @@ int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
     const gr_complex* in_fef = nullptr;
     gr_complex* out = (gr_complex*)output_items[0];
     gr_complex* level;
+    int consumed[2] = {0, 0};
+    int produced = 0;
 
     if (fef_mode == FEF_ON) {
         in_fef = (const gr_complex*)input_items[1];
@@ -381,21 +387,29 @@ int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
         }
         memcpy(out, in, sizeof(gr_complex) * frame_items[0]);
         out += frame_items[0];
+        consumed[0] += frame_items[0];
+        produced += frame_items[0] + 2048;
         if (fef_mode == FEF_ON) {
-            for (int j = 0; j < 542; j++) {
-                *out++ = p1_fef_timeshft[j];
+            fef_count--;
+            if (fef_count == 0) {
+                fef_count = fef_interval;
+                for (int j = 0; j < 542; j++) {
+                    *out++ = p1_fef_timeshft[j];
+                }
+                for (int j = 0; j < 1024; j++) {
+                    *out++ = p1_fef_time[j];
+                }
+                for (int j = 542; j < 1024; j++) {
+                    *out++ = p1_fef_timeshft[j];
+                }
+                memcpy(out, in_fef, sizeof(gr_complex) * frame_items[1]);
+                out += frame_items[1];
+                consumed[1] += frame_items[1];
+                produced += frame_items[1] + 2048;
             }
-            for (int j = 0; j < 1024; j++) {
-                *out++ = p1_fef_time[j];
-            }
-            for (int j = 542; j < 1024; j++) {
-                *out++ = p1_fef_timeshft[j];
-            }
-            memcpy(out, in_fef, sizeof(gr_complex) * frame_items[1]);
-            out += frame_items[1];
         }
         if (show_levels == TRUE) {
-            for (int j = 0; j < insertion_items; j++) {
+            for (int j = 0; j < produced; j++) {
                 if (level[j].real() > real_positive) {
                     real_positive = level[j].real();
                 }
@@ -440,13 +454,13 @@ int dvbt2_p1insertion_cc_impl::general_work(int noutput_items,
 
     // Tell runtime system how many input items we consumed on
     // each input stream.
-    consume (0, frame_items[0]);
+    consume (0, consumed[0]);
     if (fef_mode == FEF_ON) {
-        consume (1, frame_items[1]);
+        consume (1, consumed[1]);
     }
 
     // Tell runtime system how many output items we produced.
-    return noutput_items;
+    return produced;
 }
 
 const int dvbt2_p1insertion_cc_impl::p1_active_carriers[384] = {
