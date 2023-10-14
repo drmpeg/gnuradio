@@ -264,12 +264,13 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     if (version == VERSION_111) {
         l1postinit->static_flag = 0;
         l1postinit->static_padding_flag = 0;
+        l1postinit->fef_length_msb = 0;
     }
     else {
         l1postinit->static_flag = 1;
         l1postinit->static_padding_flag = 1;
+        l1postinit->fef_length_msb = feflength;
     }
-    l1postinit->fef_length_msb = 0;
     if (reservedbiasbits == RESERVED_ON && version == VERSION_131) {
         l1postinit->reserved_2 = 0x3fffffff;
     } else {
@@ -1411,7 +1412,7 @@ void dvbt2_framemapper_cc_impl::add_l1post(gr_complex* out, int t2_frame_num)
     }
     l1post[offset_bits++] = l1postinit->static_flag;
     l1post[offset_bits++] = l1postinit->static_padding_flag;
-    temp = l1postinit->fef_length_msb;
+    temp = l1postinit->fef_length_msb >> 22;
     for (int n = 1; n >= 0; n--) {
         l1post[offset_bits++] = temp & (1 << n) ? 1 : 0;
     }
