@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(dvbt2_framemapper_cc.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(099c9b61704d30fe79019277725270f3)                     */
+/* BINDTOOL_HEADER_FILE_HASH(f2dff12ab391c2fbf9232dea18d327ef)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -53,6 +53,7 @@ void bind_dvbt2_framemapper_cc(py::module& m)
              py::arg("pilotpattern"),
              py::arg("t2frames"),
              py::arg("numdatasyms"),
+             py::arg("plpid"),
              py::arg("paprmode"),
              py::arg("version"),
              py::arg("preamble"),

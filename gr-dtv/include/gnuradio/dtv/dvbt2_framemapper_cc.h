@@ -45,6 +45,7 @@ public:
      * \param pilotpattern DVB-T2 pilot pattern (PP1 - PP8).
      * \param t2frames number of T2 frames in a super-frame.
      * \param numdatasyms number of OFDM symbols in a T2 frame.
+     * \param plpid uniquely identifies a PLP.
      * \param paprmode PAPR reduction mode.
      * \param version DVB-T2 specification version.
      * \param preamble P1 symbol preamble format.
@@ -70,6 +71,7 @@ public:
                      dvbt2_pilotpattern_t pilotpattern,
                      int t2frames,
                      int numdatasyms,
+                     int plpid,
                      dvbt2_papr_t paprmode,
                      dvbt2_version_t version,
                      dvbt2_preamble_t preamble,

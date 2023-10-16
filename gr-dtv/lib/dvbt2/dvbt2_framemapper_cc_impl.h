@@ -198,6 +198,7 @@ public:
                               dvbt2_pilotpattern_t pilotpattern,
                               int t2frames,
                               int numdatasyms,
+                              int plpid,
                               dvbt2_papr_t paprmode,
                               dvbt2_version_t version,
                               dvbt2_preamble_t preamble,

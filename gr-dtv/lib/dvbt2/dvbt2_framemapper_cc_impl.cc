@@ -31,6 +31,7 @@ dvbt2_framemapper_cc::make(dvb_framesize_t framesize,
                            dvbt2_pilotpattern_t pilotpattern,
                            int t2frames,
                            int numdatasyms,
+                           int plpid,
                            dvbt2_papr_t paprmode,
                            dvbt2_version_t version,
                            dvbt2_preamble_t preamble,
@@ -56,6 +57,7 @@ dvbt2_framemapper_cc::make(dvb_framesize_t framesize,
                                                                 pilotpattern,
                                                                 t2frames,
                                                                 numdatasyms,
+                                                                plpid,
                                                                 paprmode,
                                                                 version,
                                                                 preamble,
@@ -86,6 +88,7 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     dvbt2_pilotpattern_t pilotpattern,
     int t2frames,
     int numdatasyms,
+    int plpid,
     dvbt2_papr_t paprmode,
     dvbt2_version_t version,
     dvbt2_preamble_t preamble,
@@ -197,7 +200,7 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     l1postinit->fef_type = feftype;
     l1postinit->fef_length = feflength;
     l1postinit->fef_interval = fefinterval;
-    l1postinit->plp_id = 0;
+    l1postinit->plp_id = plpid;
     l1postinit->plp_type = 1;
     l1postinit->plp_payload_type = 3;
     l1postinit->ff_flag = 0;
@@ -286,7 +289,7 @@ dvbt2_framemapper_cc_impl::dvbt2_framemapper_cc_impl(
     } else {
         l1postinit->reserved_3 = 0;
     }
-    l1postinit->plp_id_dynamic = 0;
+    l1postinit->plp_id_dynamic = plpid;
     l1postinit->plp_start = 0;
     l1postinit->plp_num_blocks = fecblocks;
     if (reservedbiasbits == RESERVED_ON && version == VERSION_131) {

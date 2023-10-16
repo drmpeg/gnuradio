@@ -100,6 +100,10 @@ parameters:
     label: Number of Data Symbols
     dtype: int
     default: '100'
+-   id: plpid
+    label: PLP ID
+    dtype: int
+    default: '0'
 -   id: paprmode1
     label: PAPR Mode
     dtype: enum
@@ -238,6 +242,7 @@ templates:
             ${pilotpattern.val},
             ${t2frames},
             ${numdatasyms},
+            ${plpid},
             % if str(version) == 'VERSION_111':
             ${paprmode1.val},
             % else:
@@ -284,6 +289,7 @@ cpp_templates:
             ${pilotpattern.val},
             ${t2frames},
             ${numdatasyms},
+            ${plpid},
             % if str(version) == 'VERSION_111':
             ${paprmode1.val},
             % else:
