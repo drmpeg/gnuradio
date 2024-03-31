@@ -51,6 +51,10 @@ SET(VERSION_PATCH git)
 include(GrVersion) #setup version info
 # cmake-format: on
 
+if(POLICY CMP0148)
+    cmake_policy(SET CMP0148 OLD)
+endif()
+
 #Set minimum version requirements
 include(GrMinReq)
 
